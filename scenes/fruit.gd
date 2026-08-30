@@ -21,6 +21,8 @@ var rank := 0
 var radius := RADII[0]
 ## 合体で消費済みフラグ。二重合体を防ぐ
 var merged := false
+## 見た目だけの拡大率（当たり判定には影響しない）。合体演出で一瞬大きくする
+var draw_scale := 1.0
 
 
 func _ready() -> void:
@@ -59,10 +61,26 @@ func _on_body_entered(body: Node) -> void:
 	merge.emit(self, other)
 
 
+# 合体で生まれた果物を「ポンッ」と膨らませる演出
+func pop_in() -> void:
+	draw_scale = 0.25
+	queue_redraw()
+	var t := create_tween()
+	t.tween_method(_set_draw_scale, 0.25, 1.0, 0.30).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+
+
+func _set_draw_scale(v: float) -> void:
+	draw_scale = v
+	queue_redraw()
+
+
 # 画像を使わず、rank の色の丸に顔を描いて「絵文字キャラ」っぽくする
 func _draw() -> void:
 	var body: Color = COLORS[rank]
 	var dark := Color(0.16, 0.12, 0.12)
+
+	# 演出中の拡大（以降の draw_* すべてに掛かる）
+	draw_set_transform(Vector2.ZERO, 0.0, Vector2(draw_scale, draw_scale))
 
 	# 本体 ＋ 少し濃い輪郭
 	draw_circle(Vector2.ZERO, radius, body)

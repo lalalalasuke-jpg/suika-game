@@ -1,6 +1,8 @@
 extends Node2D
 
 const FRUIT := preload("res://scenes/fruit.tscn")
+const SFX_POP := preload("res://audio/pop.wav")
+const SFX_GAMEOVER := preload("res://audio/gameover.wav")
 
 ## 待機中の果物を浮かせておく高さ
 const DROP_Y := 120.0
@@ -103,6 +105,42 @@ func _resolve_merge(a: Fruit, b: Fruit) -> void:
 	var f := _make_fruit(new_rank)
 	add_child(f)
 	f.global_position = pos
+	f.pop_in()
+
+	# 演出：はじけるパーティクル ＋ 効果音（ランクが上がるほど高い音）
+	_spawn_pop_fx(pos, Fruit.COLORS[new_rank])
+	_play_sfx(SFX_POP, 1.0 + new_rank * 0.05)
+
+
+# 合体位置に一瞬だけ弾ける粒を出す
+func _spawn_pop_fx(pos: Vector2, color: Color) -> void:
+	var p := CPUParticles2D.new()
+	p.position = pos
+	p.emitting = true
+	p.one_shot = true
+	p.explosiveness = 1.0
+	p.amount = 16
+	p.lifetime = 0.5
+	p.direction = Vector2.UP
+	p.spread = 180.0
+	p.initial_velocity_min = 90.0
+	p.initial_velocity_max = 230.0
+	p.gravity = Vector2(0, 500)
+	p.scale_amount_min = 2.0
+	p.scale_amount_max = 4.0
+	p.color = color
+	add_child(p)
+	get_tree().create_timer(1.2).timeout.connect(p.queue_free)
+
+
+# 使い捨ての AudioStreamPlayer で1回鳴らす（重なってもOK）
+func _play_sfx(stream: AudioStream, pitch: float = 1.0) -> void:
+	var player := AudioStreamPlayer.new()
+	player.stream = stream
+	player.pitch_scale = pitch
+	add_child(player)
+	player.finished.connect(player.queue_free)
+	player.play()
 
 
 # 落ちて止まっている果物がラインを超えていないか毎フレーム確認
@@ -129,6 +167,7 @@ func _do_game_over() -> void:
 	game_over = true
 	final_score_label.text = "スコア: %d" % score
 	game_over_panel.visible = true
+	_play_sfx(SFX_GAMEOVER)
 	if current_fruit != null:
 		current_fruit.queue_free()
 		current_fruit = null
