@@ -1,10 +1,9 @@
-# Web（HTML5）へ書き出して build/web/ に出す。
-# Cloudflare Pages の 1ファイル25MB制限のため index.wasm を gzip 圧縮し、
-# _headers で Content-Encoding: gzip を指定する（ブラウザが透過解凍）。
+# Web（HTML5）へ書き出して build/web/ に出す（GitHub Pages 配布向け）。
+# GitHub Pages は 1ファイル100MBまで＝gzip 不要。ヘッダ設定は不可だが
+# スレッド無効ビルドなので COOP/COEP は不要。
 $ErrorActionPreference = "Stop"
 
 $godot = "C:\Users\PC_User\AppData\Local\Microsoft\WinGet\Packages\GodotEngine.GodotEngine_Microsoft.Winget.Source_8wekyb3d8bbwe\Godot_v4.7.2-stable_win64_console.exe"
-$py = "C:\Users\PC_User\.local\bin\python3.12.exe"
 $proj = Split-Path $PSScriptRoot -Parent
 $buildDir = Join-Path $proj "build"
 $out = Join-Path $buildDir "web"
@@ -18,19 +17,13 @@ New-Item -ItemType File -Force (Join-Path $buildDir ".gdignore") | Out-Null
 & $godot --headless --path $proj --export-release "Web" "build/web/index.html"
 if ($LASTEXITCODE -ne 0) { throw "エクスポート失敗 (exit $LASTEXITCODE)。DEPLOY.md 参照" }
 
-# index.wasm を gzip 圧縮（ファイル名は据え置き、中身を .gz バイトに差し替え）
-& $py -c "import gzip,sys; p=sys.argv[1]; d=open(p,'rb').read(); open(p,'wb').write(gzip.compress(d,9))" (Join-Path $out "index.wasm")
+# GitHub Pages: Jekyll 処理を無効化（_ 始まりファイル対策）
+New-Item -ItemType File -Force (Join-Path $out ".nojekyll") | Out-Null
 
-# Cloudflare Pages 用 _headers
-@"
-/*
-  Cross-Origin-Opener-Policy: same-origin
-  Cross-Origin-Embedder-Policy: require-corp
-
-/index.wasm
-  Content-Encoding: gzip
-  Content-Type: application/wasm
-"@ | Set-Content -NoNewline -Encoding utf8 (Join-Path $out "_headers")
+# 検索避け（GitHub Pages はヘッダを付けられないので meta で）
+$idx = Join-Path $out "index.html"
+(Get-Content $idx -Raw) -replace '</head>', "  <meta name=`"robots`" content=`"noindex`">`n</head>" |
+	Set-Content -NoNewline -Encoding utf8 $idx
 
 Write-Host "done -> $out"
-Get-ChildItem $out | Select-Object Name, @{n="Size";e={"{0:N0} B" -f $_.Length}}
+Get-ChildItem $out -Force | Select-Object Name, @{n="Size";e={"{0:N0}" -f $_.Length}}
