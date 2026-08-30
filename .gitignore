@@ -1,0 +1,6 @@
+# Godot 4 のインポートキャッシュ（自動生成、コミット不要）
+.godot/
+
+# エクスポート成果物
+/build/
+export_presets.cfg
