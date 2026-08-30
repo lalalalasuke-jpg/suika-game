@@ -25,6 +25,8 @@ var merged := false
 
 func _ready() -> void:
 	_apply_rank()
+	# 「fruits」グループに登録。main がまとめて見つけられるようにする
+	add_to_group("fruits")
 	# 他の物体に触れたら _on_body_entered が呼ばれるようにする
 	body_entered.connect(_on_body_entered)
 
