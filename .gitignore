@@ -1,6 +1,7 @@
 # Godot 4 のインポートキャッシュ（自動生成、コミット不要）
 .godot/
 
-# エクスポート成果物
+# エクスポート成果物（Web 書き出しの出力先）
 /build/
-export_presets.cfg
+
+# export_presets.cfg はコミットする（Web プリセットを再現できるように）
