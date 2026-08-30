@@ -4,7 +4,4 @@
 # エクスポート成果物（Web 書き出しの出力先）
 /build/
 
-# gh-pages デプロイ用の一時 worktree
-/.gh-pages-wt/
-
 # export_presets.cfg はコミットする（Web プリセットを再現できるように）
