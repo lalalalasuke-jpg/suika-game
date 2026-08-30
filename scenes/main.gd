@@ -28,6 +28,8 @@ var score := 0
 var high_score := 0
 var next_rank := 0
 var game_over := false
+# 狙っている X 位置（マウス移動・タッチのドラッグで更新）
+var aim_x := 360.0
 # 果物がラインを超えている状態が続いている時間
 var danger_time := 0.0
 # 画面シェイクの残り強さ（ピクセル）
@@ -60,7 +62,7 @@ func _process(delta: float) -> void:
 		return
 	if current_fruit != null:
 		var r := current_fruit.radius
-		current_fruit.position.x = clampf(get_global_mouse_position().x, BIN_LEFT + r, BIN_RIGHT - r)
+		current_fruit.position.x = clampf(aim_x, BIN_LEFT + r, BIN_RIGHT - r)
 	_update_drop_guide()
 	_check_game_over(delta)
 	_update_danger_line()
@@ -103,13 +105,31 @@ func _update_danger_line() -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
-		if game_over:
-			get_tree().reload_current_scene()  # シーンを丸ごと読み直して最初から
-		else:
-			_drop()
-	elif event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_R:
-		get_tree().reload_current_scene()  # R でいつでもやり直し
+	# キーボード R はいつでもやり直し
+	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_R:
+		get_tree().reload_current_scene()
+		return
+
+	if game_over:
+		# ゲームオーバー中はクリック/タップでリスタート
+		var tapped: bool = (event is InputEventMouseButton and event.pressed) \
+			or (event is InputEventScreenTouch and event.pressed)
+		if tapped:
+			get_tree().reload_current_scene()
+		return
+
+	# --- 狙う位置の更新（マウス移動 / タッチのドラッグ）---
+	if event is InputEventMouseMotion:
+		aim_x = event.position.x
+	elif event is InputEventScreenDrag:
+		aim_x = event.position.x
+	elif event is InputEventScreenTouch:
+		aim_x = event.position.x
+		if not event.pressed:
+			_drop()  # 指を離したら落とす
+	elif event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
+		if not event.pressed:
+			_drop()  # ボタンを離したら落とす（クリック＝押して離す なので体感同じ）
 
 
 func _drop() -> void:
@@ -132,7 +152,7 @@ func _spawn_next() -> void:
 	var f := _make_fruit(rank)
 	f.freeze = true
 	var r: float = Fruit.RADII[rank]
-	var start_x := clampf(get_global_mouse_position().x, BIN_LEFT + r, BIN_RIGHT - r)
+	var start_x := clampf(aim_x, BIN_LEFT + r, BIN_RIGHT - r)
 	f.position = Vector2(start_x, DROP_Y)
 	add_child(f)
 	current_fruit = f
