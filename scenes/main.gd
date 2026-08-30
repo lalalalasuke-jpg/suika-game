@@ -167,7 +167,7 @@ func _resolve_merge(a: Fruit, b: Fruit) -> void:
 	score += gained
 	_update_score()
 	if combo >= 2:
-		_popup_text(pos, "コンボ x%d!" % combo)
+		_popup_text(pos, "COMBO x%d!" % combo)
 
 	a.queue_free()
 	b.queue_free()
@@ -255,8 +255,8 @@ func _do_game_over() -> void:
 	if new_record:
 		high_score = score
 		_save_high_score()
-	final_score_label.text = "スコア: %d" % score
-	go_best_label.text = "★ 新記録！ ★" if new_record else "ベスト: %d" % high_score
+	final_score_label.text = "SCORE %d" % score
+	go_best_label.text = ">>  NEW RECORD  <<" if new_record else "BEST %d" % high_score
 	game_over_panel.visible = true
 	_play_sfx(SFX_GAMEOVER)
 	if current_fruit != null:
@@ -268,8 +268,8 @@ func _do_game_over() -> void:
 
 
 func _update_score() -> void:
-	score_label.text = "スコア: %d" % score
-	best_label.text = "ベスト: %d" % maxi(high_score, score)
+	score_label.text = "SCORE %d" % score
+	best_label.text = "BEST %d" % maxi(high_score, score)
 
 
 func _load_high_score() -> void:

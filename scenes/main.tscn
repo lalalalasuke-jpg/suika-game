@@ -59,7 +59,7 @@ offset_bottom = 66.0
 mouse_filter = 2
 theme_override_colors/font_color = Color(0.9, 0.9, 0.95, 1)
 theme_override_font_sizes/font_size = 34
-text = "スコア: 0"
+text = "SCORE 0"
 
 [node name="BestLabel" type="Label" parent="HUD"]
 offset_left = 26.0
@@ -69,7 +69,7 @@ offset_bottom = 90.0
 mouse_filter = 2
 theme_override_colors/font_color = Color(0.75, 0.75, 0.82, 1)
 theme_override_font_sizes/font_size = 24
-text = "ベスト: 0"
+text = "BEST 0"
 
 [node name="NextLabel" type="Label" parent="HUD"]
 offset_left = 540.0
@@ -104,7 +104,7 @@ offset_right = 720.0
 offset_bottom = 580.0
 mouse_filter = 2
 theme_override_font_sizes/font_size = 64
-text = "ゲームオーバー"
+text = "GAME OVER"
 horizontal_alignment = 1
 
 [node name="FinalScore" type="Label" parent="HUD/GameOverPanel"]
@@ -113,7 +113,7 @@ offset_right = 720.0
 offset_bottom = 650.0
 mouse_filter = 2
 theme_override_font_sizes/font_size = 40
-text = "スコア: 0"
+text = "SCORE 0"
 horizontal_alignment = 1
 
 [node name="BestLine" type="Label" parent="HUD/GameOverPanel"]
@@ -122,7 +122,7 @@ offset_right = 720.0
 offset_bottom = 694.0
 mouse_filter = 2
 theme_override_font_sizes/font_size = 30
-text = "ベスト: 0"
+text = "BEST 0"
 horizontal_alignment = 1
 
 [node name="Hint" type="Label" parent="HUD/GameOverPanel"]
@@ -131,5 +131,5 @@ offset_right = 720.0
 offset_bottom = 764.0
 mouse_filter = 2
 theme_override_font_sizes/font_size = 28
-text = "クリックでもう一度"
+text = "Click / tap to retry"
 horizontal_alignment = 1
