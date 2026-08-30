@@ -18,6 +18,12 @@ offset_bottom = 1280.0
 mouse_filter = 2
 color = Color(0.121569, 0.121569, 0.160784, 1)
 
+[node name="DropGuide" type="Line2D" parent="."]
+visible = false
+points = PackedVector2Array(360, 150, 360, 1150)
+width = 3.0
+default_color = Color(1, 1, 1, 0.13)
+
 [node name="Bin" type="StaticBody2D" parent="."]
 
 [node name="Floor" type="CollisionShape2D" parent="Bin"]

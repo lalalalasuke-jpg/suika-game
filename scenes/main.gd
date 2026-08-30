@@ -19,6 +19,8 @@ const LINE_Y := 210.0
 const GAME_OVER_DELAY := 1.5
 ## ハイスコアの保存先（user:// は OS ごとのアプリ専用フォルダ）
 const SAVE_PATH := "user://suika_save.cfg"
+## 前の合体からこの秒数以内に次が合体したらコンボ継続
+const COMBO_WINDOW := 1.2
 
 var current_fruit: Fruit = null
 var can_drop := true
@@ -28,10 +30,17 @@ var next_rank := 0
 var game_over := false
 # 果物がラインを超えている状態が続いている時間
 var danger_time := 0.0
+# 画面シェイクの残り強さ（ピクセル）
+var shake := 0.0
+# コンボ
+var combo := 0
+var last_merge_sec := -999.0
 
 @onready var score_label: Label = $HUD/ScoreLabel
 @onready var best_label: Label = $HUD/BestLabel
 @onready var next_preview: PreviewIcon = $HUD/NextPreview
+@onready var danger_line: Line2D = $GameOverLine
+@onready var drop_guide: Line2D = $DropGuide
 @onready var game_over_panel: Control = $HUD/GameOverPanel
 @onready var final_score_label: Label = $HUD/GameOverPanel/FinalScore
 @onready var go_best_label: Label = $HUD/GameOverPanel/BestLine
@@ -46,12 +55,51 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
+	_update_shake(delta)
 	if game_over:
 		return
 	if current_fruit != null:
 		var r := current_fruit.radius
 		current_fruit.position.x = clampf(get_global_mouse_position().x, BIN_LEFT + r, BIN_RIGHT - r)
+	_update_drop_guide()
 	_check_game_over(delta)
+	_update_danger_line()
+
+
+# 落下ガイド線：持っている果物の真下へ薄い縦線
+func _update_drop_guide() -> void:
+	if current_fruit == null:
+		drop_guide.visible = false
+		return
+	var x := current_fruit.position.x
+	drop_guide.visible = true
+	drop_guide.points = PackedVector2Array([
+		Vector2(x, DROP_Y + current_fruit.radius),
+		Vector2(x, 1150.0),
+	])
+
+
+func _update_shake(delta: float) -> void:
+	if shake > 0.0:
+		shake = maxf(0.0, shake - delta * 45.0)
+		position = Vector2(randf_range(-shake, shake), randf_range(-shake, shake))
+	elif position != Vector2.ZERO:
+		position = Vector2.ZERO
+
+
+func _add_shake(amount: float) -> void:
+	shake = minf(16.0, maxf(shake, amount))
+
+
+# 危険ライン：果物が線を超えている間だけチカチカさせる
+func _update_danger_line() -> void:
+	if danger_time > 0.0:
+		var a := 0.35 + 0.55 * absf(sin(Time.get_ticks_msec() * 0.013))
+		danger_line.default_color = Color(1, 0.25, 0.25, a)
+		danger_line.width = 5.0
+	else:
+		danger_line.default_color = Color(0.9, 0.3, 0.3, 0.55)
+		danger_line.width = 3.0
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -60,6 +108,8 @@ func _unhandled_input(event: InputEvent) -> void:
 			get_tree().reload_current_scene()  # シーンを丸ごと読み直して最初から
 		else:
 			_drop()
+	elif event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_R:
+		get_tree().reload_current_scene()  # R でいつでもやり直し
 
 
 func _drop() -> void:
@@ -108,8 +158,16 @@ func _resolve_merge(a: Fruit, b: Fruit) -> void:
 	var new_rank: int = a.rank + 1
 	var pos: Vector2 = (a.global_position + b.global_position) * 0.5
 
-	score += (new_rank + 1) * 10
+	# コンボ判定：前の合体から COMBO_WINDOW 秒以内なら継続
+	var now := Time.get_ticks_msec() / 1000.0
+	combo = combo + 1 if now - last_merge_sec <= COMBO_WINDOW else 1
+	last_merge_sec = now
+
+	var gained := (new_rank + 1) * 10 * combo
+	score += gained
 	_update_score()
+	if combo >= 2:
+		_popup_text(pos, "コンボ x%d!" % combo)
 
 	a.queue_free()
 	b.queue_free()
@@ -119,9 +177,25 @@ func _resolve_merge(a: Fruit, b: Fruit) -> void:
 	f.global_position = pos
 	f.pop_in()
 
-	# 演出：はじけるパーティクル ＋ 効果音（ランクが上がるほど高い音）
+	# 演出：パーティクル ＋ 効果音（ランクが上がるほど高い音）＋ 画面シェイク
 	_spawn_pop_fx(pos, Fruit.COLORS[new_rank])
 	_play_sfx(SFX_POP, 1.0 + new_rank * 0.05)
+	_add_shake(2.0 + new_rank * 1.3)
+
+
+# 合体位置から上へ流れて消えるテキスト（コンボ表示用）
+func _popup_text(pos: Vector2, text: String) -> void:
+	var l := Label.new()
+	l.text = text
+	l.position = pos - Vector2(70, 24)
+	l.z_index = 50
+	l.add_theme_font_size_override("font_size", 34)
+	l.add_theme_color_override("font_color", Color(1, 0.95, 0.4))
+	add_child(l)
+	var t := create_tween().set_parallel(true)
+	t.tween_property(l, "position:y", l.position.y - 72.0, 0.7)
+	t.tween_property(l, "modulate:a", 0.0, 0.7)
+	t.chain().tween_callback(l.queue_free)
 
 
 # 合体位置に一瞬だけ弾ける粒を出す
@@ -188,6 +262,9 @@ func _do_game_over() -> void:
 	if current_fruit != null:
 		current_fruit.queue_free()
 		current_fruit = null
+	danger_time = 0.0
+	_update_danger_line()  # 危険ラインを通常色に戻す
+	drop_guide.visible = false
 
 
 func _update_score() -> void:
