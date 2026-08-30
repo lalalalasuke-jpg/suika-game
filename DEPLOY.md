@@ -44,18 +44,35 @@ Godot で **Web（HTML5）書き出し** → **Cloudflare Pages** に置いて�
 2. プロジェクト名（例 `suika`）→ `build/web/` の中身をまるごとドラッグ
 3. 本番 URL: `https://suika.pages.dev`（名前による）
 
-### 注意: クロスオリジン分離ヘッダ
+### 注意1: 1ファイル25MB制限（重要）
 
-Godot 4 の Web は `SharedArrayBuffer` を使うため、**COOP/COEP ヘッダ**が要る。
-`build/web/` に `_headers` ファイルを置く（Cloudflare Pages が読む）:
+Cloudflare Pages は **1ファイル 25 MiB まで**（アップロード方法を問わずプラットフォーム制限。wrangler でも同じ）。
+Godot の `index.wasm` は約38MB で超える。
+
+対策: **`index.wasm` を gzip 圧縮**（-9 で約9.6MB）してファイル名は据え置き、
+`_headers` で `Content-Encoding: gzip` を宣言 → ブラウザが透過解凍、Godot は素の wasm を受け取る。
+`tools/build_web.ps1` が書き出し後に自動でやる。
+
+### 注意2: クロスオリジン分離 ＋ wasm ヘッダ
+
+`build/web/_headers`（`build_web.ps1` が生成）:
 
 ```
 /*
   Cross-Origin-Opener-Policy: same-origin
   Cross-Origin-Embedder-Policy: require-corp
+
+/index.wasm
+  Content-Encoding: gzip
+  Content-Type: application/wasm
 ```
 
-（`tools/build_web.ps1` が書き出し後に自動で置く）
+`_headers` を入れ忘れると wasm が解凍されずゲームが起動しない。
+
+### ローカル確認
+
+`python tools/serve_web.py` → `http://127.0.0.1:8099`（`_headers` 相当のヘッダを付けて配信）。
+Godot が起動すれば Cloudflare でも動く。
 
 ## 4. Cloudflare Access で自分だけに制限
 
