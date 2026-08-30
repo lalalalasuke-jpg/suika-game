@@ -74,39 +74,42 @@ func _set_draw_scale(v: float) -> void:
 	queue_redraw()
 
 
-# 画像を使わず、rank の色の丸に顔を描いて「絵文字キャラ」っぽくする
 func _draw() -> void:
-	var body: Color = COLORS[rank]
-	var dark := Color(0.16, 0.12, 0.12)
-
 	# 演出中の拡大（以降の draw_* すべてに掛かる）
 	draw_set_transform(Vector2.ZERO, 0.0, Vector2(draw_scale, draw_scale))
+	paint_face(self, radius, rank)
 
-	# 本体 ＋ 少し濃い輪郭
-	draw_circle(Vector2.ZERO, radius, body)
-	draw_arc(Vector2.ZERO, radius, 0.0, TAU, 64, body.darkened(0.35), maxf(2.0, radius * 0.06), true)
-	# 左上のツヤ
-	draw_circle(Vector2(-radius * 0.32, -radius * 0.34), radius * 0.30, Color(1, 1, 1, 0.22))
+
+# 画像を使わず、顔つきの果物を任意の CanvasItem に描く。
+# 本体（Fruit）とプレビュー（PreviewIcon）で共用する static 関数
+static func paint_face(ci: CanvasItem, r: float, fruit_rank: int) -> void:
+	var body: Color = COLORS[fruit_rank]
+	var dark := Color(0.16, 0.12, 0.12)
+
+	# 本体 ＋ 少し濃い輪郭 ＋ 左上のツヤ
+	ci.draw_circle(Vector2.ZERO, r, body)
+	ci.draw_arc(Vector2.ZERO, r, 0.0, TAU, 64, body.darkened(0.35), maxf(2.0, r * 0.06), true)
+	ci.draw_circle(Vector2(-r * 0.32, -r * 0.34), r * 0.30, Color(1, 1, 1, 0.22))
 
 	# 目
-	var eye_dx := radius * 0.34
-	var eye_y := -radius * 0.06
-	var eye_r := maxf(1.5, radius * 0.11)
-	if rank >= 9:
+	var eye_dx := r * 0.34
+	var eye_y := -r * 0.06
+	var eye_r := maxf(1.5, r * 0.11)
+	if fruit_rank >= 9:
 		# 大物は満足げな閉じ目 ^ ^
-		var w := maxf(1.5, radius * 0.05)
-		draw_arc(Vector2(-eye_dx, eye_y), radius * 0.16, PI * 1.15, PI * 1.85, 12, dark, w, true)
-		draw_arc(Vector2(eye_dx, eye_y), radius * 0.16, PI * 1.15, PI * 1.85, 12, dark, w, true)
+		var w := maxf(1.5, r * 0.05)
+		ci.draw_arc(Vector2(-eye_dx, eye_y), r * 0.16, PI * 1.15, PI * 1.85, 12, dark, w, true)
+		ci.draw_arc(Vector2(eye_dx, eye_y), r * 0.16, PI * 1.15, PI * 1.85, 12, dark, w, true)
 	else:
-		draw_circle(Vector2(-eye_dx, eye_y), eye_r, dark)
-		draw_circle(Vector2(eye_dx, eye_y), eye_r, dark)
-		draw_circle(Vector2(-eye_dx + eye_r * 0.35, eye_y - eye_r * 0.35), eye_r * 0.4, Color(1, 1, 1, 0.85))
-		draw_circle(Vector2(eye_dx + eye_r * 0.35, eye_y - eye_r * 0.35), eye_r * 0.4, Color(1, 1, 1, 0.85))
+		ci.draw_circle(Vector2(-eye_dx, eye_y), eye_r, dark)
+		ci.draw_circle(Vector2(eye_dx, eye_y), eye_r, dark)
+		ci.draw_circle(Vector2(-eye_dx + eye_r * 0.35, eye_y - eye_r * 0.35), eye_r * 0.4, Color(1, 1, 1, 0.85))
+		ci.draw_circle(Vector2(eye_dx + eye_r * 0.35, eye_y - eye_r * 0.35), eye_r * 0.4, Color(1, 1, 1, 0.85))
 
 	# 口（にっこり）
-	draw_arc(Vector2(0, radius * 0.10), radius * 0.30, PI * 0.15, PI * 0.85, 20, dark, maxf(1.5, radius * 0.07), true)
+	ci.draw_arc(Vector2(0, r * 0.10), r * 0.30, PI * 0.15, PI * 0.85, 20, dark, maxf(1.5, r * 0.07), true)
 
 	# ほっぺ（中ランク以上）
-	if rank >= 4:
-		draw_circle(Vector2(-radius * 0.52, radius * 0.16), radius * 0.14, Color(1, 0.5, 0.5, 0.30))
-		draw_circle(Vector2(radius * 0.52, radius * 0.16), radius * 0.14, Color(1, 0.5, 0.5, 0.30))
+	if fruit_rank >= 4:
+		ci.draw_circle(Vector2(-r * 0.52, r * 0.16), r * 0.14, Color(1, 0.5, 0.5, 0.30))
+		ci.draw_circle(Vector2(r * 0.52, r * 0.16), r * 0.14, Color(1, 0.5, 0.5, 0.30))

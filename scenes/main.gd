@@ -17,20 +17,30 @@ const SPAWN_MAX_RANK := 2
 const LINE_Y := 210.0
 ## 何秒 居座り続けたらゲームオーバーにするか
 const GAME_OVER_DELAY := 1.5
+## ハイスコアの保存先（user:// は OS ごとのアプリ専用フォルダ）
+const SAVE_PATH := "user://suika_save.cfg"
 
 var current_fruit: Fruit = null
 var can_drop := true
 var score := 0
+var high_score := 0
+var next_rank := 0
 var game_over := false
 # 果物がラインを超えている状態が続いている時間
 var danger_time := 0.0
 
 @onready var score_label: Label = $HUD/ScoreLabel
+@onready var best_label: Label = $HUD/BestLabel
+@onready var next_preview: PreviewIcon = $HUD/NextPreview
 @onready var game_over_panel: Control = $HUD/GameOverPanel
 @onready var final_score_label: Label = $HUD/GameOverPanel/FinalScore
+@onready var go_best_label: Label = $HUD/GameOverPanel/BestLine
 
 
 func _ready() -> void:
+	_load_high_score()
+	next_rank = randi() % (SPAWN_MAX_RANK + 1)
+	next_preview.show_rank(next_rank)
 	_update_score()
 	_spawn_next()
 
@@ -66,7 +76,9 @@ func _drop() -> void:
 func _spawn_next() -> void:
 	if game_over:
 		return
-	var rank := randi() % (SPAWN_MAX_RANK + 1)
+	var rank := next_rank
+	next_rank = randi() % (SPAWN_MAX_RANK + 1)
+	next_preview.show_rank(next_rank)
 	var f := _make_fruit(rank)
 	f.freeze = true
 	var r: float = Fruit.RADII[rank]
@@ -165,7 +177,12 @@ func _check_game_over(delta: float) -> void:
 
 func _do_game_over() -> void:
 	game_over = true
+	var new_record := score > high_score
+	if new_record:
+		high_score = score
+		_save_high_score()
 	final_score_label.text = "スコア: %d" % score
+	go_best_label.text = "★ 新記録！ ★" if new_record else "ベスト: %d" % high_score
 	game_over_panel.visible = true
 	_play_sfx(SFX_GAMEOVER)
 	if current_fruit != null:
@@ -175,3 +192,16 @@ func _do_game_over() -> void:
 
 func _update_score() -> void:
 	score_label.text = "スコア: %d" % score
+	best_label.text = "ベスト: %d" % maxi(high_score, score)
+
+
+func _load_high_score() -> void:
+	var cf := ConfigFile.new()
+	if cf.load(SAVE_PATH) == OK:
+		high_score = int(cf.get_value("score", "best", 0))
+
+
+func _save_high_score() -> void:
+	var cf := ConfigFile.new()
+	cf.set_value("score", "best", high_score)
+	cf.save(SAVE_PATH)

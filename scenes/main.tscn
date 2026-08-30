@@ -1,6 +1,7 @@
-[gd_scene load_steps=4 format=3]
+[gd_scene load_steps=5 format=3]
 
 [ext_resource type="Script" path="res://scenes/main.gd" id="1"]
+[ext_resource type="Script" path="res://scenes/preview_icon.gd" id="2"]
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_floor"]
 size = Vector2(500, 30)
@@ -54,6 +55,31 @@ theme_override_colors/font_color = Color(0.9, 0.9, 0.95, 1)
 theme_override_font_sizes/font_size = 34
 text = "スコア: 0"
 
+[node name="BestLabel" type="Label" parent="HUD"]
+offset_left = 26.0
+offset_top = 60.0
+offset_right = 420.0
+offset_bottom = 90.0
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.75, 0.75, 0.82, 1)
+theme_override_font_sizes/font_size = 24
+text = "ベスト: 0"
+
+[node name="NextLabel" type="Label" parent="HUD"]
+offset_left = 540.0
+offset_top = 20.0
+offset_right = 694.0
+offset_bottom = 46.0
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.75, 0.75, 0.82, 1)
+theme_override_font_sizes/font_size = 22
+text = "NEXT"
+horizontal_alignment = 2
+
+[node name="NextPreview" type="Node2D" parent="HUD"]
+position = Vector2(648, 96)
+script = ExtResource("2")
+
 [node name="GameOverPanel" type="Control" parent="HUD"]
 visible = false
 offset_right = 720.0
@@ -84,10 +110,19 @@ theme_override_font_sizes/font_size = 40
 text = "スコア: 0"
 horizontal_alignment = 1
 
-[node name="Hint" type="Label" parent="HUD/GameOverPanel"]
-offset_top = 680.0
+[node name="BestLine" type="Label" parent="HUD/GameOverPanel"]
+offset_top = 656.0
 offset_right = 720.0
-offset_bottom = 720.0
+offset_bottom = 694.0
+mouse_filter = 2
+theme_override_font_sizes/font_size = 30
+text = "ベスト: 0"
+horizontal_alignment = 1
+
+[node name="Hint" type="Label" parent="HUD/GameOverPanel"]
+offset_top = 724.0
+offset_right = 720.0
+offset_bottom = 764.0
 mouse_filter = 2
 theme_override_font_sizes/font_size = 28
 text = "クリックでもう一度"
