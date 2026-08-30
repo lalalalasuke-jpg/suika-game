@@ -23,9 +23,9 @@ var game_over := false
 # 果物がラインを超えている状態が続いている時間
 var danger_time := 0.0
 
-@onready var score_label: Label = $ScoreLabel
-@onready var game_over_panel: Control = $GameOverPanel
-@onready var final_score_label: Label = $GameOverPanel/FinalScore
+@onready var score_label: Label = $HUD/ScoreLabel
+@onready var game_over_panel: Control = $HUD/GameOverPanel
+@onready var final_score_label: Label = $HUD/GameOverPanel/FinalScore
 
 
 func _ready() -> void:
