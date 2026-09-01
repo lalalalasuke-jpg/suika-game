@@ -21,6 +21,8 @@ const GAME_OVER_DELAY := 1.5
 const SAVE_PATH := "user://suika_save.cfg"
 ## 前の合体からこの秒数以内に次が合体したらコンボ継続
 const COMBO_WINDOW := 1.2
+## 合体成功時、ストック枠が空ならこの確率でできた玉をアイテムとしてキープする
+const ITEM_DROP_CHANCE := 0.10
 
 var current_fruit: Fruit = null
 var can_drop := true
@@ -37,10 +39,13 @@ var shake := 0.0
 # コンボ
 var combo := 0
 var last_merge_sec := -999.0
+# キープ枠のランク。-1 なら空
+var stock_rank := -1
 
 @onready var score_label: Label = $HUD/ScoreLabel
 @onready var best_label: Label = $HUD/BestLabel
 @onready var next_preview: PreviewIcon = $HUD/NextPreview
+@onready var stock_button: Button = $HUD/StockButton
 @onready var danger_line: Line2D = $GameOverLine
 @onready var drop_guide: Line2D = $DropGuide
 @onready var game_over_panel: Control = $HUD/GameOverPanel
@@ -52,6 +57,7 @@ func _ready() -> void:
 	_load_high_score()
 	next_rank = randi() % (SPAWN_MAX_RANK + 1)
 	next_preview.show_rank(next_rank)
+	stock_button.pressed.connect(_on_stock_pressed)
 	_update_score()
 	_spawn_next()
 
@@ -192,6 +198,15 @@ func _resolve_merge(a: Fruit, b: Fruit) -> void:
 	a.queue_free()
 	b.queue_free()
 
+	# ストック枠が空なら一定確率で、できた玉を盤面に出さずアイテムとしてキープする
+	if stock_rank == -1 and randf() < ITEM_DROP_CHANCE:
+		stock_rank = new_rank
+		_update_stock_ui()
+		_popup_text(pos, "ITEM GET!")
+		_play_sfx(SFX_POP, 1.6)
+		_add_shake(2.0 + new_rank * 1.3)
+		return
+
 	var f := _make_fruit(new_rank)
 	add_child(f)
 	f.global_position = pos
@@ -201,6 +216,25 @@ func _resolve_merge(a: Fruit, b: Fruit) -> void:
 	_spawn_pop_fx(pos, Fruit.COLORS[new_rank])
 	_play_sfx(SFX_POP, 1.0 + new_rank * 0.05)
 	_add_shake(2.0 + new_rank * 1.3)
+
+
+# キープ枠をタップ：今持ってる（落とす前の）玉とランクを入れ替える
+func _on_stock_pressed() -> void:
+	if stock_rank == -1 or current_fruit == null:
+		return
+	var swapped := current_fruit.rank
+	current_fruit.set_rank(stock_rank)
+	var r := current_fruit.radius
+	current_fruit.position.x = clampf(current_fruit.position.x, BIN_LEFT + r, BIN_RIGHT - r)
+	stock_rank = swapped
+	_update_stock_ui()
+	_popup_text(current_fruit.global_position, "SWAP!")
+
+
+func _update_stock_ui() -> void:
+	stock_button.visible = stock_rank >= 0
+	if stock_button.visible:
+		stock_button.text = "ITEM\nR%d" % (stock_rank + 1)
 
 
 # 合体位置から上へ流れて消えるテキスト（コンボ表示用）
@@ -285,6 +319,7 @@ func _do_game_over() -> void:
 	danger_time = 0.0
 	_update_danger_line()  # 危険ラインを通常色に戻す
 	drop_guide.visible = false
+	stock_button.visible = false
 
 
 func _update_score() -> void:

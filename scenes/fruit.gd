@@ -42,6 +42,12 @@ func _apply_rank() -> void:
 	queue_redraw()
 
 
+# 生成済みの果物のランクを後から変える（キープアイテムでの入れ替え用）
+func set_rank(new_rank: int) -> void:
+	rank = new_rank
+	_apply_rank()
+
+
 func _on_body_entered(body: Node) -> void:
 	# すでに消費済み or 最大ランクなら何もしない
 	if merged or rank >= MAX_RANK:
