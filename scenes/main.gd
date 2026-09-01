@@ -21,7 +21,7 @@ const GAME_OVER_DELAY := 1.5
 const SAVE_PATH := "user://suika_save.cfg"
 ## 前の合体からこの秒数以内に次が合体したらコンボ継続
 const COMBO_WINDOW := 1.2
-## 合体成功時、ストック枠が空ならこの確率でできた玉をアイテムとしてキープする
+## 合体成功時、この確率でできた玉をアイテムとしてキープする
 const ITEM_DROP_CHANCE := 0.10
 
 var current_fruit: Fruit = null
@@ -39,13 +39,13 @@ var shake := 0.0
 # コンボ
 var combo := 0
 var last_merge_sec := -999.0
-# キープ枠のランク。-1 なら空
-var stock_rank := -1
+# キープ中の果物のランクのリスト（手に入れた順）。先頭から消費していく
+var stock_queue: Array[int] = []
 
 @onready var score_label: Label = $HUD/ScoreLabel
 @onready var best_label: Label = $HUD/BestLabel
 @onready var next_preview: PreviewIcon = $HUD/NextPreview
-@onready var stock_button: Button = $HUD/StockButton
+@onready var stock_button: StockSlot = $HUD/StockButton
 @onready var danger_line: Line2D = $GameOverLine
 @onready var drop_guide: Line2D = $DropGuide
 @onready var game_over_panel: Control = $HUD/GameOverPanel
@@ -198,9 +198,9 @@ func _resolve_merge(a: Fruit, b: Fruit) -> void:
 	a.queue_free()
 	b.queue_free()
 
-	# ストック枠が空なら一定確率で、できた玉を盤面に出さずアイテムとしてキープする
-	if stock_rank == -1 and randf() < ITEM_DROP_CHANCE:
-		stock_rank = new_rank
+	# 一定確率で、できた玉を盤面に出さずアイテムとしてキープする（何個でもたまる）
+	if randf() < ITEM_DROP_CHANCE:
+		stock_queue.append(new_rank)
 		_update_stock_ui()
 		_popup_text(pos, "ITEM GET!")
 		_play_sfx(SFX_POP, 1.6)
@@ -218,23 +218,20 @@ func _resolve_merge(a: Fruit, b: Fruit) -> void:
 	_add_shake(2.0 + new_rank * 1.3)
 
 
-# キープ枠をタップ：今持ってる（落とす前の）玉とランクを入れ替える
+# キープ枠をタップ：先頭の1個を消費して、今持ってる（落とす前の）玉と差し替える
 func _on_stock_pressed() -> void:
-	if stock_rank == -1 or current_fruit == null:
+	if stock_queue.is_empty() or current_fruit == null:
 		return
-	var swapped := current_fruit.rank
-	current_fruit.set_rank(stock_rank)
+	var used_rank: int = stock_queue.pop_front()
+	current_fruit.set_rank(used_rank)
 	var r := current_fruit.radius
 	current_fruit.position.x = clampf(current_fruit.position.x, BIN_LEFT + r, BIN_RIGHT - r)
-	stock_rank = swapped
 	_update_stock_ui()
-	_popup_text(current_fruit.global_position, "SWAP!")
+	_popup_text(current_fruit.global_position, "ITEM USE!")
 
 
 func _update_stock_ui() -> void:
-	stock_button.visible = stock_rank >= 0
-	if stock_button.visible:
-		stock_button.text = "ITEM\nR%d" % (stock_rank + 1)
+	stock_button.set_queue(stock_queue)
 
 
 # 合体位置から上へ流れて消えるテキスト（コンボ表示用）
